@@ -1,6 +1,106 @@
 const fs = require('fs');
-const lignes = fs.readFileSync('./text.txt', 'utf-8').split('\n');
-console.log('hello')
-console.log("lignes: ", lignes)
-const lignesToWrite = ['je m\'appelle Elie', 'j\'apprends le dev']
-fs.writeFileSync('./text2.txt', lignesToWrite.join('\n'));
+
+function lireFichierEntree(cheminFichier) {
+    const lignes = fs.readFileSync(cheminFichier, 'utf-8').split('\n');
+    const carte = {  dimensions: undefined , montagnes: [], tresors: [], aventuriers: [],};
+    lignes.forEach((ligne) => {
+        const elements = ligne.trim().split(' ');
+        switch (elements[0]) {
+            case 'C':
+                carte.dimensions = { largeur: parseInt(elements[2]), hauteur: parseInt(elements[4]) };
+                break;
+            case 'M':
+                carte.montagnes.push({ x: parseInt(elements[2]), y: parseInt(elements[4]) });
+                break;
+            case 'T':
+                carte.tresors.push({ x: parseInt(elements[2]), y: parseInt(elements[4]), nbTresors: parseInt(elements[6]) });
+                break;
+            case 'A':
+                carte.aventuriers.push({
+                    nom: elements[2],
+                    x: parseInt(elements[4]),
+                    y: parseInt(elements[6]),
+                    orientation: elements[8],
+                    sequence: elements[10]
+                });
+                break;
+            default:
+                break;
+        }
+    });
+
+    return carte;
+}
+
+function ecrireFichierSortie(cheminFichier, resultat) {
+    const lignes = [];
+
+    lignes.push(`C - ${carte.dimensions.largeur} - ${carte.dimensions.hauteur}`);
+    carte.montagnes.forEach((montagne) => lignes.push(`M - ${montagne.x} - ${montagne.y}`));
+
+    carte.tresors.forEach((tresor) => {
+        const nbTresorsRestants = tresor.nbTresors - (carte.aventuriers.find(a => a.x === tresor.x && a.y === tresor.y)?.tresorsRamasses || 0);
+        lignes.push(`T - ${tresor.x} - ${tresor.y} - ${nbTresorsRestants}`);
+    });
+
+    carte.aventuriers.forEach((aventurier) => {
+        lignes.push(`A - ${aventurier.nom} - ${aventurier.x} - ${aventurier.y} - ${aventurier.orientation} - ${aventurier.tresorsRamasses}`);
+    });
+
+    fs.writeFileSync(cheminFichier, lignes.join('\n'));
+}
+
+
+const moveStep = ( x, y, sequence) =>  {
+    switch(sequence) {
+        case 'N':
+            return { x: x - 1, y }
+        case 'E':
+            return { x: x + 1, y }
+        case 'S':
+            return { x, y: y + 1 }
+        case 'O':
+            return { x, y: y -1 }
+    }
+}
+
+const changeOrientationMap = {
+    ['ND']: 'E',
+    ['NG']: 'O',
+    ['ED']: 'S',
+    ['EG']: 'N',
+    ['SD']: 'O',
+    ['SG']: 'E',
+    ['OD']: 'N',
+    ['OG']: 'S',
+}
+
+function simulerMouvements(carte) {
+    for (let sequence of carte.aventuriers[0].sequence) {
+        switch(sequence) {
+            case 'A':
+                carte.aventuriers[0] = {
+                    ...carte.aventuriers[0],
+                    ...moveStep(
+                        carte.aventuriers[0].x,
+                        carte.aventuriers[0].y,
+                        carte.aventuriers[0].orientation
+                    )
+                }
+                break
+            case 'D':
+            case'G':
+                carte.aventuriers[0] = {
+                    ...carte.aventuriers[0],
+                    orientation: changeOrientationMap[carte.aventuriers[0].orientation + sequence]
+                }
+        }
+
+    }
+}
+
+const cheminFichierEntree = './text.txt';
+const carte = lireFichierEntree(cheminFichierEntree);
+simulerMouvements(carte);
+const cheminFichierSortie = './result.txt';
+ecrireFichierSortie(cheminFichierSortie, carte);
