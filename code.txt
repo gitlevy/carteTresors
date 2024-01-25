@@ -1,0 +1,6 @@
+const fs = require('fs');
+const lignes = fs.readFileSync('./text.txt', 'utf-8').split('\n');
+console.log('hello')
+console.log("lignes: ", lignes)
+const lignesToWrite = ['je m\'appelle Elie', 'j\'apprends le dev']
+fs.writeFileSync('./text2.txt', lignesToWrite.join('\n'));
